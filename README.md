@@ -397,6 +397,9 @@ else:
 |------|-------|------|
 | `GLADOS_COOKIE` | 第二步组合的 Cookie | ✅ 是 |
 | `PUSHPLUS_TOKEN` | 微信推送 Token（见下方） | ❌ 否 |
+| `BARK_URL` | Bark 推送地址，形如 `https://bark.example.com/你的device_key`（官方或自建服务器均可） | ❌ 否 |
+
+> 💡 Bark 与 PushPlus 可同时配置，都会推送。Bark 推送为纯文本（邮箱/积分/剩余天数/签到结果），按 `GLaDOS` 分组归档。
 
 ---
 

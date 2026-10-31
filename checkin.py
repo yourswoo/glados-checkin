@@ -17,6 +17,7 @@ import os
 import sys
 import time
 from datetime import datetime
+from urllib.parse import quote
 
 # Fix Windows Unicode Output
 if sys.platform.startswith('win'):
@@ -174,12 +175,24 @@ def pushplus(token, title, content):
     except:
         log("❌ PushPlus 推送失败")
 
+def bark(base, title, content):
+    """Bark 推送：base 形如 https://bark.example.com/你的device_key"""
+    if not base: return
+    try:
+        base = base.rstrip('/')
+        requests.get(f"{base}/{quote(title, safe='')}/{quote(content, safe='')}",
+                     params={'group': 'GLaDOS', 'isArchive': '1'}, timeout=10)
+        log("✅ Bark 推送成功")
+    except Exception as e:
+        log(f"❌ Bark 推送失败: {e}")
+
 def main():
     log("🚀 2026 GLaDOS Checkin Starting...")
     cookies = get_cookies()
     if not cookies: sys.exit(1)
     
     results = []
+    plain_results = []
     success_cnt = 0
     
     for i, cookie in enumerate(cookies, 1):
@@ -217,6 +230,8 @@ def main():
 </div>
 """)
 
+    plain_results.append(f"{g.email}\n积分 {g.points} ({g.points_change}) | 剩余 {g.left_days} 天\n{msg}")
+
     # Push
     ptoken = os.environ.get("PUSHPLUS_TOKEN")
     if ptoken:
@@ -231,6 +246,10 @@ def main():
         content = "".join(results)
         content += f"<br><small>时间: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}</small>"
         pushplus(ptoken, title, content)
+
+    burl = os.environ.get("BARK_URL")
+    if burl:
+        bark(burl, f"GLaDOS签到: 成功{success_cnt}/{len(cookies)}", "\n\n".join(plain_results))
 
 if __name__ == '__main__':
     main()
