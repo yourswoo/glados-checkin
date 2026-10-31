@@ -34,6 +34,7 @@ jobs:
         env:
           GLADOS_COOKIE: ${{ secrets.GLADOS_COOKIE }}
           PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
+          BARK_URL: ${{ secrets.BARK_URL }}
 
       - name: Retry on Failure
         if: failure()
@@ -45,3 +46,4 @@ jobs:
         env:
           GLADOS_COOKIE: ${{ secrets.GLADOS_COOKIE }}
           PUSHPLUS_TOKEN: ${{ secrets.PUSHPLUS_TOKEN }}
+          BARK_URL: ${{ secrets.BARK_URL }}
