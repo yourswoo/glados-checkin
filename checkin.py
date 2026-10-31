@@ -31,8 +31,10 @@ DOMAINS = [
     "https://glados.network",
 ]
 
+# 会话与登录设备绑定，UA 必须与账号登录设备一致，否则签到返回 device-mismatch
+# 默认 macOS Chrome；如账号在其他设备登录，用环境变量 GLADOS_UA 覆盖
 HEADERS = {
-    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+    'User-Agent': os.environ.get('GLADOS_UA', 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36'),
     'Content-Type': 'application/json;charset=UTF-8',
     'Accept': 'application/json, text/plain, */*',
 }
@@ -98,10 +100,15 @@ class GLaDOS:
                 h['Origin'] = d
                 h['Referer'] = f"{d}/console/checkin"
                 
+                # 前端以 window.location.hostname 作为 token，必须与请求域名一致
+                payload = data
+                if isinstance(data, dict) and data.get('token') == '@hostname':
+                    payload = dict(data, token=d.replace('https://', ''))
+
                 if method == 'GET':
                     resp = requests.get(url, headers=h, timeout=10)
                 else:
-                    resp = requests.post(url, headers=h, json=data, timeout=10)
+                    resp = requests.post(url, headers=h, json=payload, timeout=10)
                 
                 if resp.status_code == 200:
                     self.domain = d # Remember working domain
@@ -153,8 +160,8 @@ class GLaDOS:
         return False
 
     def checkin(self):
-        """执行签到"""
-        return self.req('POST', '/api/user/checkin', {'token': 'glados.cloud'})
+        """执行签到（token 跟随请求域名，不一致会被判定为自动化）"""
+        return self.req('POST', '/api/user/checkin', {'token': '@hostname'})
 
 # ================= 主程序 =================
 
@@ -187,10 +194,14 @@ def main():
         g.get_points()
         
         # 3. Log
-        status_icon = "✅" if "Checkin" in msg else "⚠️"
+        ok = bool(res) and "automated" not in msg.lower() and res.get('code') != 4
+        status_icon = "✅" if ok else "⚠️"
         log(f"用户: {g.email} | 积分: {g.points} | 天数: {g.left_days} | 结果: {msg}")
         
-        if "Checkin" in msg: success_cnt += 1
+        if ok: success_cnt += 1
+        
+        if res and res.get('code') == 4 and res.get('reason') == 'device-mismatch':
+            log(f"⚠️ 会话绑定在 {res.get('loginDevice', '?')} 设备上，请设置 GLADOS_UA 为该设备的浏览器 UA，或重新登录 GLaDOS 后更新 Cookie")
         
         # 4. Result Formatting
         results.append(f"""
